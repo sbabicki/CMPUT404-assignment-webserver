@@ -26,9 +26,9 @@ import SocketServer
 
 # try: curl -v -X GET http://127.0.0.1:8080/
 import re
+import os.path
 DEFAULT = "./www/index.html"
 		
-
 	
 class MyWebServer(SocketServer.BaseRequestHandler):
 
@@ -36,15 +36,19 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 	def parse_path(self):
 		
 		# regular expression to extract the first line
-		firstLineRE = re.compile('GET (/www/.*) HTTP/1\.(0|1)')
-		firstLinePath = firstLineRE.match(self.data)
+		pathRE = re.compile('GET (/www/.*) HTTP/1\.(0|1)')
+		pathMatch = pathRE.match(self.data)
 		
-		if (firstLinePath != None):
-			return "." + firstLinePath.group(1)
+		if (pathMatch != None):
+			path = "." + pathMatch.group(1)
+			if (os.path.exists(path)):
+				return path
+			else:
+				return None
+				
 		else:
 			return DEFAULT
 			
-		
 	def handle(self):
 		
 		self.data = self.request.recv(1024).strip()
