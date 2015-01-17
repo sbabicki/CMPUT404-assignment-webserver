@@ -33,9 +33,10 @@ DEFAULT = "./www/index.html"
 class MyWebServer(SocketServer.BaseRequestHandler):
 
 	def not_found_404(self):
-		#self.request.sendall("ahsdfklasjdflk")
-		self.request.sendall("<!DOCTYPE html><html>HTTP/1.1 404 Not Found</html>")
-
+		
+		self.request.sendall("HTTP/1.1 404 Not Found\r\nContent-Type: text/html; charset=utf-8\r\n\r\n")
+		self.request.sendall("<!DOCTYPE html><html><b>404 Not Found</b></html>")
+		
 	
 	#find and return path if it is valid
 	def parse_path(self):
@@ -51,21 +52,25 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 			else:
 				return None
 		else:
-			return DEFAULT
+			return None
 			
 	def handle(self):
 		
 		self.data = self.request.recv(1024).strip()
 		
-		self.not_found_404()
+		#self.not_found_404()
 		path = self.parse_path()
-
-			
-		# TODO: CATCH EXCEPTION
-		#f = open(path)
+		if (path == None):
+			self.not_found_404()
 		
-		# serve page to client
-		#self.request.sendall(f.read())
+		else:	
+			# TODO: CATCH EXCEPTION
+			f = open(path)
+		
+			# serve page to client
+			self.request.sendall(f.read())
+			
+			f.close()
 		
 		print ("Got a request of: %s\n" % self.data)
 		#self.request.sendall("OK")
