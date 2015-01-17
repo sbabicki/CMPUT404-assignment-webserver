@@ -34,12 +34,11 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 		self.data = self.request.recv(1024).strip()
 		
 		# regular expression to extract the first line
-		firstLineRE = re.compile('GET .* HTTP/1\.(0|1)')
-		firstLine = firstLineRE.match(self.data).group()
-		self.request.sendall(firstLine)
+		firstLineRE = re.compile('GET (.*) HTTP/1\.(0|1)')
+		firstLine = "." + firstLineRE.match(self.data).group(1)
 		
 		# TODO: CATCH EXCEPTION
-		f = open(ROOTDIR + "/deep/index.html")
+		f = open(firstLine)
 		
 		# serve page to client
 		self.request.sendall(f.read())
