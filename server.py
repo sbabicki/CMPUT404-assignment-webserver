@@ -26,30 +26,42 @@ import SocketServer
 
 # try: curl -v -X GET http://127.0.0.1:8080/
 import re
-ROOTDIR = "./www/"
+DEFAULT = "./www/index.html"
+		
 
+	
 class MyWebServer(SocketServer.BaseRequestHandler):
 
-	def handle(self):
-		self.data = self.request.recv(1024).strip()
+	#find and return path if it is valid
+	def parse_path(self):
 		
 		# regular expression to extract the first line
-		firstLineRE = re.compile('GET (.*) HTTP/1\.(0|1)')
-		firstLine = "." + firstLineRE.match(self.data).group(1)
+		firstLineRE = re.compile('GET (/www/.*) HTTP/1\.(0|1)')
+		firstLinePath = firstLineRE.match(self.data)
 		
+		if (firstLinePath != None):
+			return "." + firstLinePath.group(1)
+		else:
+			return DEFAULT
+			
+		
+	def handle(self):
+		
+		self.data = self.request.recv(1024).strip()
+		
+		path = self.parse_path()
+			
 		# TODO: CATCH EXCEPTION
-		f = open(firstLine)
+		f = open(path)
 		
 		# serve page to client
 		self.request.sendall(f.read())
 		
 		print ("Got a request of: %s\n" % self.data)
-		
 		#self.request.sendall("OK")
 		#self.request.sendall(self.data.upper())
-		
-		
-		
+	
+
 
 if __name__ == "__main__":
 	HOST, PORT = "localhost", 8080
