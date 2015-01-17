@@ -25,17 +25,31 @@ import SocketServer
 # run: python freetests.py
 
 # try: curl -v -X GET http://127.0.0.1:8080/
-
+import re
+ROOTDIR = "./www/"
 
 class MyWebServer(SocketServer.BaseRequestHandler):
 
 	def handle(self):
 		self.data = self.request.recv(1024).strip()
+		
+		# regular expression to extract the first line
+		firstLineRE = re.compile('GET .* HTTP/1\.(0|1)')
+		firstLine = firstLineRE.match(self.data).group()
+		self.request.sendall(firstLine)
+		
+		# TODO: CATCH EXCEPTION
+		f = open(ROOTDIR + "/deep/index.html")
+		
+		# serve page to client
+		self.request.sendall(f.read())
+		
 		print ("Got a request of: %s\n" % self.data)
+		
 		#self.request.sendall("OK")
 		#self.request.sendall(self.data.upper())
-		f = open("./www/index.html", "r+")
-		self.request.sendall(f.read())
+		
+		
 		
 
 if __name__ == "__main__":
