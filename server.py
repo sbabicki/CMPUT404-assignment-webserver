@@ -44,6 +44,9 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 		
 		validPath = None
 		
+		# normalize path
+		path = os.path.normpath(path)
+		
 		# path starts with /www
 		if (path.startswith(ROOTDIR[1:])):
 			if (os.path.exists("." + path)):
@@ -54,9 +57,15 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 			validPath = ROOTDIR + path
 		
 		if (validPath != None):	
+			
+			# if path is directory (ends with "/"), go to index.html file
 			if (os.path.isdir(validPath)):
 				if (os.path.exists(validPath + "/index.html")):
 					validPath = validPath + "/index.html"
+				
+				# no file index.html in the directory, can't serve anything
+				else: 
+					validPath = None
 			
 		return validPath
 		
