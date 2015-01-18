@@ -42,16 +42,21 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 		self.request.sendall("HTTP/1.1 404 Not Found\r\nContent-Type: text/html; charset=utf-8\r\n\r\n" +
 		"<!DOCTYPE html><html><h2>404 Not Found</h2>" + 
 		"\n\n<h3>The requested URL was not found on this server.</h3></html>")
-		
+	
+	
+	def redirect_301(self):
+		self.request.sendall("HTTP/1.1 301 Moved Permanently\r\n" + 
+		"Location: http://127.0.0.1:8080/deep/\r\n" + 
+		"Connection: close\r\nContent-Type: text/html\r\n\r\n")	
 		
 	# check and return path if path is valid, else return none
 	def check_valid_path(self, path):
 		
 		validPath = None
-		
+
 		# normalize path
 		path = os.path.normpath(path)
-		
+
 		# path starts with /www
 		if (path.startswith(ROOTDIR[1:])):
 			if (os.path.exists("." + path)):
@@ -65,29 +70,35 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 			
 			# if path is directory (ends with "/"), go to index.html file
 			if (os.path.isdir(validPath)):
-				if (os.path.exists(validPath + "/index.html")):
-					validPath = validPath + "/index.html"
+
+				# add a "/" at the end and redirect
+				validPath = validPath + "/"
+				#self.redirect_301()
+				
+				if (os.path.exists(validPath + "index.html")):
+					validPath = validPath + "index.html"
 				
 				# no file index.html in the directory, can't serve anything
 				else: 
 					validPath = None
-			
+
 		return validPath
 		
 	
 	#find and return path if it is valid
 	def parse_path(self):
 		
-		# regular expression to extract path starting with /www/
+		# regular expression to extract path starting with "/"
 		pathRE = re.compile('GET (/.*) HTTP/1\.(0|1)')
 		pathMatch = pathRE.match(self.data)
 		
-		# path starts with /www/
+		# check if the path is valid
 		if (pathMatch != None):
 			path = pathMatch.group(1)
+			
 			return self.check_valid_path(path)
 		
-		# regular expression to extract path not starting with /www/
+		# not proper GET request format
 		return None
 			
 			
