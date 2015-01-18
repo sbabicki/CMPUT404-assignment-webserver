@@ -27,39 +27,62 @@ import SocketServer
 # try: curl -v -X GET http://127.0.0.1:8080/
 import re
 import os.path
-DEFAULT = "./www/index.html"
+ROOTDIR = "./www"
 		
 	
 class MyWebServer(SocketServer.BaseRequestHandler):
 
+	# throws a 404 not found error and prints message on screen
 	def not_found_404(self):
 		
 		self.request.sendall("HTTP/1.1 404 Not Found\r\nContent-Type: text/html; charset=utf-8\r\n\r\n")
 		self.request.sendall("<!DOCTYPE html><html><b>404 Not Found</b></html>")
 		
+		
+	# check and return path if path is valid, else return none
+	def check_valid_path(self, path):
+		
+		validPath = None
+		
+		# path starts with /www
+		if (path.startswith(ROOTDIR[1:])):
+			if (os.path.exists("." + path)):
+				validPath = "." + path
+		
+		# path doesn't start with /www
+		elif (os.path.exists(ROOTDIR + path)):
+			validPath = ROOTDIR + path
+		
+		if (validPath != None):	
+			if (os.path.isdir(validPath)):
+				if (os.path.exists(validPath + "/index.html")):
+					validPath = validPath + "/index.html"
+			
+		return validPath
+		
 	
 	#find and return path if it is valid
 	def parse_path(self):
 		
-		# regular expression to extract the first line
-		pathRE = re.compile('GET (/www/.*) HTTP/1\.(0|1)')
+		# regular expression to extract path starting with /www/
+		pathRE = re.compile('GET (/.*) HTTP/1\.(0|1)')
 		pathMatch = pathRE.match(self.data)
 		
+		# path starts with /www/
 		if (pathMatch != None):
-			path = "." + pathMatch.group(1)
-			if (os.path.exists(path)):
-				return path
-			else:
-				return None
-		else:
-			return None
+			path = pathMatch.group(1)
+			return self.check_valid_path(path)
+		
+		# regular expression to extract path not starting with /www/
+		return None
 			
 	def handle(self):
 		
 		self.data = self.request.recv(1024).strip()
 		
-		#self.not_found_404()
 		path = self.parse_path()
+		
+		# if the path is not valid, throw a 404 not found error
 		if (path == None):
 			self.not_found_404()
 		
@@ -72,11 +95,8 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 			
 			f.close()
 		
-		print ("Got a request of: %s\n" % self.data)
-		#self.request.sendall("OK")
-		#self.request.sendall(self.data.upper())
-	
-
+		print ("\nGot a request of: \n%s\n\n" % self.data)
+		
 
 if __name__ == "__main__":
 	HOST, PORT = "localhost", 8080
