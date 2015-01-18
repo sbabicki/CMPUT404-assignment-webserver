@@ -1,4 +1,3 @@
-import SocketServer
 # coding: utf-8
 
 # Copyright 2013 Abram Hindle, Eddie Antonio Santos
@@ -25,18 +24,24 @@ import SocketServer
 # run: python freetests.py
 
 # try: curl -v -X GET http://127.0.0.1:8080/
+# 
+# 
+# File edited by Sasha Babicki (CCID: babicki)
+
+import SocketServer
 import re
 import os.path
+
 ROOTDIR = "./www"
 		
-	
 class MyWebServer(SocketServer.BaseRequestHandler):
 
 	# throws a 404 not found error and prints message on screen
 	def not_found_404(self):
 		
-		self.request.sendall("HTTP/1.1 404 Not Found\r\nContent-Type: text/html; charset=utf-8\r\n\r\n")
-		self.request.sendall("<!DOCTYPE html><html><b>404 Not Found</b></html>")
+		self.request.sendall("HTTP/1.1 404 Not Found\r\nContent-Type: text/html; charset=utf-8\r\n\r\n" +
+		"<!DOCTYPE html><html><h2>404 Not Found</h2>" + 
+		"\n\n<h3>The requested URL was not found on this server.</h3></html>")
 		
 		
 	# check and return path if path is valid, else return none
@@ -85,6 +90,7 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 		# regular expression to extract path not starting with /www/
 		return None
 			
+			
 	def handle(self):
 		
 		self.data = self.request.recv(1024).strip()
@@ -96,14 +102,30 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 			self.not_found_404()
 		
 		else:	
-			# TODO: CATCH EXCEPTION
-			f = open(path)
-		
-			# serve page to client
-			self.request.sendall(f.read())
 			
-			f.close()
+			# open file at specified path
+			try: 
+				f = open(path)
+			
+			except IOError:
+				print("Unsuccessful file access attempt :(")
+				self.not_found_404()
+			
+			else:
+			
+				# get mimetype from the path
+				mimetypeRE = re.compile('./.*\.(.*)')
+				mimetypeMatch = mimetypeRE.match(path)
+				mimetype = mimetypeMatch.group(1)
+			
+				self.request.sendall("HTTP/1.1 200 OK\r\nContent-Type: text/%s\r\n\r\n" %mimetype)
 		
+				# serve page to client
+				self.request.sendall(f.read())
+			
+				f.close()
+		
+		# print request info to terminal
 		print ("\nGot a request of: \n%s\n\n" % self.data)
 		
 
