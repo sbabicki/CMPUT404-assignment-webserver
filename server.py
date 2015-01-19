@@ -27,6 +27,7 @@
 # 
 # 
 # File edited by Sasha Babicki (CCID: babicki)
+# See README.md for more info
 
 import SocketServer
 import re
@@ -43,42 +44,46 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 		"<!DOCTYPE html><html><h2>404 Not Found</h2>" + 
 		"\n\n<h3>The requested URL was not found on this server.</h3></html>")
 	
-	
-	def redirect_301(self):
+	# redirects to new path specified by newPath
+	def redirect_301(self, newPath):
 		self.request.sendall("HTTP/1.1 301 Moved Permanently\r\n" + 
-		"Location: http://127.0.0.1:8080/deep/\r\n" + 
-		"Connection: close\r\nContent-Type: text/html\r\n\r\n")	
+		"Location: http://127.0.0.1:8080/%s\r\n\r\n" %(newPath))	
 		
 	# check and return path if path is valid, else return none
 	def check_valid_path(self, path):
 		
 		validPath = None
+		pathEnd = path[-1]
 
-		# normalize path
+		# normalize path (which also removes trailing / if it exists)
 		path = os.path.normpath(path)
 
-		# path starts with /www
+		# parse path that starts with /www
 		if (path.startswith(ROOTDIR[1:])):
 			if (os.path.exists("." + path)):
 				validPath = "." + path
 		
-		# path doesn't start with /www
+		# parse path that doesn't start with /www
 		elif (os.path.exists(ROOTDIR + path)):
 			validPath = ROOTDIR + path
 		
 		if (validPath != None):	
 			
-			# if path is directory (ends with "/"), go to index.html file
+			# if path is a directory, go to index.html file
 			if (os.path.isdir(validPath)):
 
-				# add a "/" at the end and redirect
+				# add / to the end
 				validPath = validPath + "/"
-				#self.redirect_301()
+				
+				# if GET request specifies directory not ending with / redirect
+				if (pathEnd != "/"):
+					self.redirect_301(validPath[2:])
+					return "redirect"
 				
 				if (os.path.exists(validPath + "index.html")):
 					validPath = validPath + "index.html"
 				
-				# no file index.html in the directory, can't serve anything
+				# if no file index.html in the directory, can't serve anything
 				else: 
 					validPath = None
 
@@ -88,14 +93,13 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 	#find and return path if it is valid
 	def parse_path(self):
 		
-		# regular expression to extract path starting with "/"
+		# regular expression to extract path starting with /
 		pathRE = re.compile('GET (/.*) HTTP/1\.(0|1)')
 		pathMatch = pathRE.match(self.data)
 		
 		# check if the path is valid
 		if (pathMatch != None):
 			path = pathMatch.group(1)
-			
 			return self.check_valid_path(path)
 		
 		# not proper GET request format
@@ -106,14 +110,20 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 		
 		self.data = self.request.recv(1024).strip()
 		
+		# print request info to terminal
+		print ("\nGot a request of: \n%s\n\n" % self.data)
+		
 		path = self.parse_path()
 		
 		# if the path is not valid, throw a 404 not found error
 		if (path == None):
 			self.not_found_404()
+			return
+		
+		elif (path == "redirect"):
+			return
 		
 		else:	
-			
 			# open file at specified path
 			try: 
 				f = open(path)
@@ -123,7 +133,6 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 				self.not_found_404()
 			
 			else:
-			
 				# get mimetype from the path
 				mimetypeRE = re.compile('./.*\.(.*)')
 				mimetypeMatch = mimetypeRE.match(path)
@@ -135,10 +144,7 @@ class MyWebServer(SocketServer.BaseRequestHandler):
 				self.request.sendall(f.read())
 			
 				f.close()
-		
-		# print request info to terminal
-		print ("\nGot a request of: \n%s\n\n" % self.data)
-		
+		return
 
 if __name__ == "__main__":
 	HOST, PORT = "localhost", 8080
